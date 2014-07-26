@@ -6,5 +6,6 @@ var winston = require('winston');
 gith({
 	repo: 'proxyer/LiveUpdater'
 }).on('all', function (payload) {
+	winston.debug('check');
 	winston.debug(payload);
 });
