@@ -1,5 +1,13 @@
 LiveUpdater
 ===========
+
+Cluster To HAProxy Demon
+===========
+1.	Data Set
+	$CPU Useage,Available Memory,Trafic Total,Trafic Sent,Trafic Received\n
+
+HAProxy Demon to Monitor
+===========
 1.	Monitor에게 보내져야할 정보
 
 		HAProxy
