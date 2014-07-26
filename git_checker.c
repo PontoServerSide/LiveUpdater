@@ -3,25 +3,18 @@
  * Developed by Namyun Kim <skadvs@gmail.com>
  * This program developed using libgit2.
  */
-#include <stdio.h>
-#include <stdbool.h>
-#include <git2.h>
-#include <git2/clone.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/time.h>
 
-git_repository *repo = NULL;
-git_remote *remote = NULL;
-int error;
+#include "git_checker.h"
 
 void interval_fetch_handler(int signum) {
 
     static int timer_count = 0;
     static char buf[GIT_OID_HEXSZ + 1] = {0};
+
+    git_error_handler(git_remote_load(&remote, repo, "origin"));
+
+    git_error_handler(git_remote_connect(remote, GIT_DIRECTION_FETCH));
+    int connected = git_remote_connected(remote);
 
     const git_remote_head **remote_heads = NULL;
     
@@ -71,10 +64,7 @@ int main(int argc, char** argv) {
 
     git_error_handler(git_clone(&repo, argv[2], argv[1], NULL));    
 
-    git_error_handler(git_remote_load(&remote, repo, "origin"));
-
-    git_error_handler(git_remote_connect(remote, GIT_DIRECTION_FETCH));
-    int connected = git_remote_connected(remote);
+    
 
     // initialize timer
     memset(&sa,0,sizeof(sa));
