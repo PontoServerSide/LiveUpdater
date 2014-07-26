@@ -1,8 +1,13 @@
 'use strict';
 
-var gith = require('gith').create(9001);
+var gith = require('gith').create();
 
-gith().on('all', function (payload) {
+gith({
+	repo: 'proxyer/LiveUpdater',
+	branch: 'develop'
+}).on('all', function (payload) {
 	console.log('CHECK');
 	console.log(payload);
 });
+
+gith.listen(9001);
