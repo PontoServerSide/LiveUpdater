@@ -1,0 +1,23 @@
+{
+  "name": "GitEventChecker",
+  "version": "0.0.1",
+  "description": "Git repository event checker",
+  "main": "server.js",
+  "scripts": {
+    "test": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/proxyer/LiveUpdater.git"
+  },
+  "author": "Namyun Kim",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/proxyer/LiveUpdater/issues"
+  },
+  "dependencies": {
+    "express": "~4.7.0",
+    "gith": "~1.0.4",
+    "nodemon": "~1.2.1"
+  }
+}
