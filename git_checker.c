@@ -16,13 +16,12 @@
 
 git_repository *repo = NULL;
 git_remote *remote = NULL;
-char buf[GIT_OID_HEXSZ + 1];
 int error;
 
 void interval_fetch_handler(int signum) {
 
     static int timer_count = 0;
-    
+    static char buf[GIT_OID_HEXSZ + 1] = {0};
 
     const git_remote_head **remote_heads = NULL;
     
@@ -83,17 +82,15 @@ int main(int argc, char** argv) {
     sigaction(SIGVTALRM,&sa,NULL);
 
     // set timer interval
-    timer.it_value.tv_sec = 1;
+    timer.it_value.tv_sec = 10;
     timer.it_value.tv_usec = 0;
 
-    timer.it_interval.tv_sec = 1;
+    timer.it_interval.tv_sec = 10;
     timer.it_interval.tv_usec = 0;
 
     setitimer(ITIMER_VIRTUAL,&timer,NULL);
 
     while(1);
-
-    printf("Last commit: %s\n", buf);
 
     return 0;
 }
