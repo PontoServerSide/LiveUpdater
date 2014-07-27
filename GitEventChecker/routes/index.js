@@ -4,7 +4,7 @@ var router = express.Router();
 /* GET home page. */
 router.post('/', function(req, res) {
 	//var param = JSON.parse(req.body.payload);
-	console.log(req.body.payload);
+	console.log(req.body);
 
 	res.send('complete');
 });
