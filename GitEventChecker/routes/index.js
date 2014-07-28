@@ -20,6 +20,7 @@ router.post('/', function(req, res) {
 		console.log(writeResult);
 
 		client.on('data', function (data) {
+			console.log('read here');
 			console.log('DATA: '+data);
 		});
 	});
