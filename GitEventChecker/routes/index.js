@@ -22,13 +22,15 @@ router.post('/', function(req, res) {
 	client.on('data', function (data) {
 		console.log('read here');
 		console.log('DATA: '+data);
+
+		res.send('complete');
 	});
 
 	client.on('error', function (error) {
 		console.log('Error Connection: '+error);
-	});
 
-	res.send('complete');
+		res.send('complete');
+	});
 });
 
 module.exports = router;
