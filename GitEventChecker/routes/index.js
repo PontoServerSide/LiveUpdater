@@ -13,6 +13,8 @@ router.post('/', function(req, res) {
 	var client = net.createConnection(socketPath);
 
 	client.on('connect', function () {
+		winston.debug('check connection');
+
 		client.write('show health');
 
 		client.on('data', function (data) {
