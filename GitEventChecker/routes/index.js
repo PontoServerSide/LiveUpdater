@@ -18,6 +18,7 @@ router.post('/', function(req, res) {
 
 	client.on('data', function (data) {
 		winston.debug('DATA: '+data);
+		
 	});
 
 	/*
