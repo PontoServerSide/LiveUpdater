@@ -13,14 +13,14 @@ router.post('/', function(req, res) {
 	var client = net.createConnection(socketPath);
 
 	client.on('connect', function () {
-		console.debug('check connection');
+		console.log('check connection');
 
 		var writeResult = client.write('show health');
 
 		console.log(writeResult);
 
 		client.on('data', function (data) {
-			console.debug('DATA: '+data);
+			console.log('DATA: '+data);
 		});
 	});
 
