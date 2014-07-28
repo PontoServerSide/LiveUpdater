@@ -16,35 +16,17 @@ router.post('/', function(req, res) {
 		console.log('check connection');
 
 		var writeResult = client.write('show health');
-
 		console.log(writeResult);
-
-		client.on('data', function (data) {
-			console.log('read here');
-			console.log('DATA: '+data);
-		});
 	});
 
-	
-
-	/*
-	fs.stat(socketPath, function (err) {
-		if (!err) {
-			fs.unlinkSync(socketPath);
-			return;
-		}
-
-		var unixServer = net.createServer(function (sock) {
-			sock.write('show health');
-
-			sock.on('data', function (data) {
-				winston.debug('DATA: '+data);
-				sock.destroy();
-			});
-
-		}).listen(socketPath);
+	client.on('data', function (data) {
+		console.log('read here');
+		console.log('DATA: '+data);
 	});
-	*/
+
+	client.on('error', function (error) {
+		console.log('Error Connection: '+error);
+	});
 
 	res.send('complete');
 });
