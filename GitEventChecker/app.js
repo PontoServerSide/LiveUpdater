@@ -1,12 +1,12 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-
-var routes = require('./routes/index');
-var users = require('./routes/user');
+var express = require('express'),
+    path = require('path'),
+    favicon = require('serve-favicon'),
+    logger = require('morgan'),
+    cookieParser = require('cookie-parser'),
+    fs = require('fs'),
+    bodyParser = require('body-parser'),
+    routes = require('./routes/index'),
+    users = require('./routes/user');
 
 var app = express();
 
@@ -30,7 +30,18 @@ app.use(function(req, res, next) {
     next(err);
 });
 
-/// error handlers
+// read haproxy config file
+var haproxyCfgPath = '/etc/haproxy/haproxy.cfg'; 
+    
+fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
+    if (err) {
+        throw err;
+    }
+
+    console.log(data);
+});
+
+// error handlers
 
 // development error handler
 // will print stacktrace

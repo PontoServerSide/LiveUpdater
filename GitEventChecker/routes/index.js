@@ -13,6 +13,7 @@ router.post('/', function(req, res) {
 	fs.stat(socketPath, function (err) {
 		if (!err) {
 			fs.unlinkSync(socketPath);
+			return;
 		}
 
 		var unixServer = net.createServer(function (sock) {
