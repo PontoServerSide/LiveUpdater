@@ -13,7 +13,7 @@ router.post('/', function(req, res) {
 	var client = net.createConnection(socketPath);
 
 	client.on('connect', function () {
-		connect.write('show health');
+		client.write('show health');
 	});
 
 	client.on('data', function (data) {
