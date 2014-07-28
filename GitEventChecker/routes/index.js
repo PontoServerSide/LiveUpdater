@@ -15,7 +15,7 @@ router.post('/', function(req, res) {
 	client.on('connect', function () {
 		console.log('check connection');
 
-		var writeResult = client.write('show health\r\n');
+		var writeResult = client.write('show table\r\n');
 		console.log(writeResult);
 
 		client.on('data', function (data) {
