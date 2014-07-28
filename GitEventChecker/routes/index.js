@@ -14,12 +14,13 @@ router.post('/', function(req, res) {
 
 	client.on('connect', function () {
 		client.write('show health');
+
+		client.on('data', function (data) {
+			winston.debug('DATA: '+data);
+		});
 	});
 
-	client.on('data', function (data) {
-		winston.debug('DATA: '+data);
-		
-	});
+	
 
 	/*
 	fs.stat(socketPath, function (err) {
