@@ -15,22 +15,20 @@ router.post('/', function(req, res) {
 	client.on('connect', function () {
 		console.log('check connection');
 
-		var writeResult = client.write('show health');
+		var writeResult = client.write('show health\r\n');
 		console.log(writeResult);
+
+		client.on('data', function (data) {
+			console.log('read here');
+			console.log('DATA: '+data);
+		});
+
+		client.on('error', function (error) {
+			console.log('Error Connection: '+error);
+		});
 	});
 
-	client.on('data', function (data) {
-		console.log('read here');
-		console.log('DATA: '+data);
-
-		res.send('complete');
-	});
-
-	client.on('error', function (error) {
-		console.log('Error Connection: '+error);
-
-		res.send('complete');
-	});
+	res.send('complete');
 });
 
 module.exports = router;
