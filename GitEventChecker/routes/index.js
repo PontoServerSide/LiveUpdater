@@ -7,8 +7,8 @@ var express = require('express'),
 
 /* GET home page. */
 router.post('/', function(req, res) {
-	var param = JSON.parse(req.body);
-	console.log(req.body);
+	// console.log(req.body);
+	// you can get commit information from request body
 
 	fs.stat(socketPath, function (err) {
 		if (!err) {
