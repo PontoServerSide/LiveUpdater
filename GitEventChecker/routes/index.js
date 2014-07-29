@@ -87,24 +87,19 @@ var updateServer = function (sock, backend, frontend, callback) {
 			return cb(new Error('No matched server'));
 		},
 		waitResponse = function (host, cb) {
-			var server = net.createServer();
+			var server = net.createConnection(1818,host);
 
-			// wait client response
-			server.on('listening', function () {
-				winston.info('Waiting client response '+host+':1818');
-			});
-
-			server.on('connection', function (socket) {
-				winston.info('Connection established with client');
+			server.on('connect', function (socket) {
+				winston.info('Connection established with client'+host+':1818');
 
 				socket.write('update');
 			});
 
 			server.on('data', function (data) {
-				if (data === 'success') {
+				if (data.toString() === 'success') {
 					server.close();
 					return cb(null);
-				}else if (data === 'fail') {
+				}else if (data.toString() === 'fail') {
 					server.close();
 					return cb(new Error(host+':1818 update failed'));
 				}
@@ -120,12 +115,37 @@ var updateServer = function (sock, backend, frontend, callback) {
 			});
 
 			server.listen(1818, host);
+		},
+		restartServer = function (cb) {
+			if (!sock.write('enable server '+backend+'/'+frontend+'\r\n')) {
+				// if something wrong to write through socket
+				return cb(new Error('Can not send command to HAProxy'));
+			}
+
+			// when the response arrived
+			sock.on('data', function (data) {
+				var strData = data.toString();
+
+				if (strData.match(/\n/)) {
+					var now = new Date();
+					winston.info('['+now.toLocaleTimeString()+'] '+backend+'/'+frontend+' started');
+					return cb(null);
+				}else {
+					return cb(new Error('Disable server failed'));
+				}
+			});
+
+			sock.on('error', function (error) {
+				winston.error(error.toString());
+				return cb(error);
+			});
 		};
 
 	async.waterfall([
 		stopServer,
 		findServerInfo,
-		waitResponse
+		waitResponse,
+		restartServer
 	], function (error) {
 		if (error) {
 			return callback(error);
