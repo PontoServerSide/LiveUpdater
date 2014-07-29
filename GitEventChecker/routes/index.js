@@ -1,8 +1,7 @@
 var express = require('express'),
 	router = express.Router(),
 	net = require('net'),
-	fs = require('fs'),
-	socketPath = '/tmp/haproxy';
+	fs = require('fs');
 
 
 /* GET home page. */
@@ -15,12 +14,43 @@ router.post('/', function(req, res) {
 	client.on('connect', function () {
 		console.log('check connection');
 
-		var writeResult = client.write('show table\r\n');
-		console.log(writeResult);
+		var turnoffCnt = 0;
+
+		if (haproxyStat !== null) {
+			
+			
+
+			for(var j=0; j<servers.count; j++) {
+				var min = null;
+				for(var i=0; i<haproxyStat.length; i++) {
+					var status = haproxyStat[i];
+
+					if (status.svname !== 'FRONTEND' && status.svname !== 'BACKEND') {
+
+						if (min === null || status.scur < min.scur) {
+							min = status;
+						}
+					}
+				}
+
+				if (min === null) {
+					console.error('Server list is not valid');
+					return;
+				}else {
+					var writeResult = client.write('disable server '+min['# pxname']+'/'+min['svname']+'\r\n');
+				}
+			}
+
+			
+		}
 
 		client.on('data', function (data) {
-			console.log('read here');
-			console.log('DATA: '+data);
+			if (data === '\r\n') {
+				turnoffCnt++;
+			}else {
+				console.error('Disable server failed');
+				return;
+			}
 		});
 
 		client.on('error', function (error) {
