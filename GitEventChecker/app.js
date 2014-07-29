@@ -7,6 +7,7 @@ var express = require('express'),
     net = global.net = require('net'),
     cronJob = require('cron').CronJob,
     csv = require('csv'),
+    winston = global.winston = require('winston'),
     bodyParser = require('body-parser'),
     routes = require('./routes/index'),
     users = require('./routes/user');
@@ -34,11 +35,11 @@ app.use(function(req, res, next) {
 });
 
 // read haproxy config file
-var haproxyCfgPath = '/etc/haproxy/haproxy.cfg'; 
-var socketPath = global.socketPath = '/tmp/haproxy';
-var pidPath = global.pidPath = '/var/run/haproxy.pid';
-var servers = global.servers = [];
-var haproxyStat = global.haproxyStat = null;
+var haproxyCfgPath = '/etc/haproxy/haproxy.cfg',
+    socketPath = global.socketPath = '/tmp/haproxy',
+    pidPath = global.pidPath = '/var/run/haproxy.pid',
+    servers = global.servers = [],
+    haproxyStat = global.haproxyStat = [];
 
 fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
     if (err) {
@@ -91,7 +92,7 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
 // polling work
 
 new cronJob({
-    cronTime: '10 * * * * *',
+    cronTime: '00 * * * * *',
     onTick: function () {
         var client = net.createConnection(socketPath);
 
@@ -104,7 +105,11 @@ new cronJob({
                     if (err) {
                         console.log(err);
                     }else {
-                        haproxyStat = parsedData;
+                        parsedData.sort(compare);
+                        global.haproxyStat = parsedData;
+
+                        var now = new Date();
+                        winston.info('['+now.toLocaleTimeString()+'] HAProxy status polled');
                     }
                 });
                 client.destroy();
@@ -122,6 +127,14 @@ new cronJob({
     },
     start: true
 });
+
+function compare(a, b) {
+    if (a.scur < b.scrur)
+        return -1;
+    if (a.scur > b.scur)
+        return 1;
+    return 0;
+}
 
 // error handlers
 
