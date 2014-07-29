@@ -16,7 +16,8 @@
     "node-schedule": "~0.1.13",
     "cron": "~1.0.4",
     "csv": "~0.4.0",
-    "winston": "~0.7.3"
+    "winston": "~0.7.3",
+    "async": "~0.9.0"
   },
   "devDependencies": {
     "grunt": "~0.4.5",

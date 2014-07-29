@@ -20,7 +20,7 @@ app.set('view engine', 'jade');
 
 // app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(logger('dev'));
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -100,8 +100,7 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
 });
 
 // polling work
-
-new cronJob({
+var job = new cronJob({
     cronTime: '00 * * * * *',
     onTick: function () {
         var client = net.createConnection(socketPath);
@@ -135,7 +134,7 @@ new cronJob({
             });
         });
     },
-    start: true
+    start: false
 });
 
 function compare(a, b) {
