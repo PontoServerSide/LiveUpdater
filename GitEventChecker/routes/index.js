@@ -17,6 +17,9 @@ router.post('/', function(req, res) {
 		var turnoffCnt = 0;
 
 		if (haproxyStat !== null) {
+
+			console.log(server.length);
+
 			for(var j=0; j<servers.length; j++) {
 				var min = null;
 				for(var i=0; i<haproxyStat.length; i++) {
