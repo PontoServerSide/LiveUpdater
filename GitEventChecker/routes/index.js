@@ -18,8 +18,6 @@ router.post('/', function(req, res) {
 
 		if (haproxyStat !== null) {
 			
-			
-
 			for(var j=0; j<servers.count; j++) {
 				var min = null;
 				for(var i=0; i<haproxyStat.length; i++) {
@@ -40,8 +38,6 @@ router.post('/', function(req, res) {
 					var writeResult = client.write('disable server '+min['# pxname']+'/'+min['svname']+'\r\n');
 				}
 			}
-
-			
 		}
 
 		client.on('data', function (data) {
