@@ -105,7 +105,7 @@ new cronJob({
                         console.log(err);
                     }else {
                         haproxyStat = parsedData;
-                        console.log('get haproxy status');
+                        console.log('get haproxy status' + haproxyStat);
                     }
                 });
                 client.destroy();
