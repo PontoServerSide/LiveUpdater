@@ -17,7 +17,7 @@ router.post('/', function(req, res) {
 		var turnoffCnt = 0;
 
 		if (haproxyStat !== null) {
-			for(var j=0; j<servers.count; j++) {
+			for(var j=0; j<servers.length; j++) {
 				var min = null;
 				for(var i=0; i<haproxyStat.length; i++) {
 					var status = haproxyStat[i];
@@ -32,7 +32,7 @@ router.post('/', function(req, res) {
 
 				if (min === null) {
 					console.error('Server list is not valid');
-					return;
+					return res.send('complete');
 				}else {
 					console.log('SERVER: '+min.svname);
 					var writeResult = client.write('disable server '+min['# pxname']+'/'+min['svname']+'\r\n');
@@ -46,16 +46,17 @@ router.post('/', function(req, res) {
 				turnoffCnt++;
 			}else {
 				console.error('Disable server failed');
-				return;
+				return res.send('complete');
 			}
 		});
 
 		client.on('error', function (error) {
 			console.log('Error Connection: '+error);
+			return res.send('complete');
 		});
 	});
 
-	res.send('complete');
+	return res.send('complete');
 });
 
 module.exports = router;
