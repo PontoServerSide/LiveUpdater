@@ -66,20 +66,30 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
             // console.log('pidfile dir: '+res[0]);
         }
         // global
-        else if(res=line.match(/listen *([^\s]*)/)) {
+        else if(res=line.match(/listen *([^\s]*) *([\w\.]*):(\d+)/)) {
             if (server != null) {
                 servers.push(server);
             }
             server = {
-                backend: '',
+                backend: {},
                 frontend: []
             };
-            server.backend = res[1];
+
+            server.backend = {
+                name: res[1],
+                ip: res[2],
+                port: res[3]
+            };
             // console.log('backend: '+res[1]);
         }
         // server
-        else if(res=line.match(/server \s*([^\s]*)/)) {
-            server.frontend.push(res[1]);
+        else if(res=line.match(/server *([^\s]*) *([\w\.]*):(\d+)/)) {
+            var data = {
+                name: res[1],
+                ip: res[2],
+                port: res[3]
+            };
+            server.frontend.push(data);
             // console.log('frontend: '+res[1]);
         }
     }
