@@ -20,7 +20,7 @@ app.set('view engine', 'jade');
 
 // app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(logger('dev'));
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -66,20 +66,30 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
             // console.log('pidfile dir: '+res[0]);
         }
         // global
-        else if(res=line.match(/listen *([^\s]*)/)) {
+        else if(res=line.match(/listen *([^\s]*) *([\w\.]*):(\d+)/)) {
             if (server != null) {
                 servers.push(server);
             }
             server = {
-                backend: '',
+                backend: {},
                 frontend: []
             };
-            server.backend = res[1];
+
+            server.backend = {
+                name: res[1],
+                ip: res[2],
+                port: res[3]
+            };
             // console.log('backend: '+res[1]);
         }
         // server
-        else if(res=line.match(/server \s*([^\s]*)/)) {
-            server.frontend.push(res[1]);
+        else if(res=line.match(/server *([^\s]*) *([\w\.]*):(\d+)/)) {
+            var data = {
+                name: res[1],
+                ip: res[2],
+                port: res[3]
+            };
+            server.frontend.push(data);
             // console.log('frontend: '+res[1]);
         }
     }
@@ -89,10 +99,11 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
     }
 });
 
-// polling work
+var monitorServer = null;
 
-new cronJob({
-    cronTime: '00 * * * * *',
+// polling work
+var job = new cronJob({
+    cronTime: '* * * * * *',
     onTick: function () {
         var client = net.createConnection(socketPath);
 
@@ -105,6 +116,43 @@ new cronJob({
                     if (err) {
                         console.log(err);
                     }else {
+                        if (monitorServer !== null) {
+                            var sendData = [];
+                            for(var i=0; i<servers.length; i++) {
+
+                                var sendServerData = {
+                                    HAProxy_IP: servers[i].backend.ip+':'+servers[i].backend.port,
+                                    Cluster_Count: servers[i].frontend.length,
+                                    Cluster: []
+                                };
+
+                                var realIndex = 1;
+
+                                for(var j=0; j<parsedData.length; j++) {
+                                    if (parsedData[j]['# pxname'] === servers[i].backend.name &&
+                                        parsedData[j]['svname'] !== 'FRONTEND' &&
+                                        parsedData[j]['svname'] !== 'BACKEND') {
+                                        sendServerData.Cluster.push({
+                                            Cluster_Index: realIndex,
+                                            Cluster_Name: parsedData[j]['svname'],
+                                            Traffic_Total: parsedData[j]['bin']*1+parsedData[j]['bout']*1,
+                                            Traffic_Sent: parsedData[j]['bin'],
+                                            Traffic_Received: parsedData[j]['bout'],
+                                            Current_Session: parsedData[j]['scur'],
+                                            Cluster_Status: parsedData[j]['status']
+                                        });
+                                        realIndex++;
+                                    }
+                                }
+
+                                sendData.push(sendServerData);
+                            }
+
+                            winston.info(sendData);
+
+                            //server.write(sendData, 'utf8');
+                        }
+
                         parsedData.sort(compare);
                         global.haproxyStat = parsedData;
 
@@ -125,7 +173,18 @@ new cronJob({
             });
         });
     },
-    start: true
+    start: false
+});
+
+// Send HAProxy status
+monitorServer = createConnection(5000, localhost);
+
+monitorServer.on('connect', function (socket) {
+    job.start();
+});
+
+monitorServer.on('data', function (data) {
+
 });
 
 function compare(a, b) {
