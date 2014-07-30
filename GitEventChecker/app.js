@@ -186,18 +186,6 @@ monitorServer.on('connect', function (socket) {
 monitorServer.on('data', function (data) {
 
 });
-/*
-server = createServer(function (socket) {
-    socket.on('connect', function () {
-        job.start();
-    });
-
-    socket.on('data', function (data) {
-
-    });
-
-}).listen(5000, localhost);
-*/
 
 function compare(a, b) {
     if (a.scur < b.scrur)

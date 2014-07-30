@@ -37,9 +37,11 @@ function asyncLoop(iterations, func, callback) {
     return loop;
 }
 
-var updateServer = function (sock, backend, frontend, callback) {
+var updateServer = function (backend, frontend, callback) {
 
 	var stopServer = function (cb) {
+			var sock = net.createConnection(socketPath);
+
 			var now = new Date();
 			winston.info('['+now.toLocaleTimeString()+'] Send command to '+backend+'/'+frontend);
 
@@ -51,6 +53,7 @@ var updateServer = function (sock, backend, frontend, callback) {
 			// when the response arrived
 			sock.on('data', function (data) {
 				var strData = data.toString();
+				sock.end();
 
 				if (strData.match(/\n/)) {
 					var now = new Date();
@@ -64,6 +67,10 @@ var updateServer = function (sock, backend, frontend, callback) {
 			sock.on('error', function (error) {
 				winston.error(error.toString());
 				return cb(error);
+			});
+
+			sock.on('end', function () {
+				winston.info('socket end');
 			});
 		},
 		findServerInfo = function (cb) {
@@ -87,36 +94,33 @@ var updateServer = function (sock, backend, frontend, callback) {
 			return cb(new Error('No matched server'));
 		},
 		waitResponse = function (host, cb) {
-			var server = net.createConnection(1818,host);
+			var server = net.createServer(function (connection) {
+				connection.write('update');
 
-			server.on('connect', function (socket) {
-				winston.info('Connection established with client'+host+':1818');
+				connection.on('data', function (data) {
+					if (data.toString() === 'success') {
+						server.close();
+						return cb(null);
+					}else if (data.toString() === 'fail') {
+						server.close();
+						return cb(new Error(host+':1818 update failed'));
+					}
+				});
 
-				socket.write('update');
-			});
-
-			server.on('data', function (data) {
-				if (data.toString() === 'success') {
-					server.close();
+				server.on('close', function () {
+					var now = new Date();
+					winston.info('['+now.toLocaleTimeString()+'] Connection with '+host+':1818 ended');
 					return cb(null);
-				}else if (data.toString() === 'fail') {
-					server.close();
-					return cb(new Error(host+':1818 update failed'));
-				}
-			});
+				});
 
-			server.on('close', function () {
-				winston.info('Connection with '+host+':1818 ended');
-				return cb(null);
+				connection.on('error', function (error) {
+					return cb(error);
+				});
 			});
-
-			server.on('error', function (error) {
-				return cb(error);
-			});
-
-			server.listen(1818, host);
 		},
 		restartServer = function (cb) {
+			var sock = net.createConnection(socketPath);
+
 			if (!sock.write('enable server '+backend+'/'+frontend+'\r\n')) {
 				// if something wrong to write through socket
 				return cb(new Error('Can not send command to HAProxy'));
@@ -124,6 +128,7 @@ var updateServer = function (sock, backend, frontend, callback) {
 
 			// when the response arrived
 			sock.on('data', function (data) {
+				sock.end();
 				var strData = data.toString();
 
 				if (strData.match(/\n/)) {
@@ -138,6 +143,10 @@ var updateServer = function (sock, backend, frontend, callback) {
 			sock.on('error', function (error) {
 				winston.error(error.toString());
 				return cb(error);
+			});
+
+			sock.on('end', function () {
+				winston.info('socket end');
 			});
 		};
 
@@ -177,21 +186,12 @@ router.post('/', function(req, res) {
 
 				// check the server status
 				if(isFineToStop(server)) {
-					var client = net.createConnection(socketPath);
-
-					client.on('connect', function () {
-						updateServer(client, server['# pxname'],server['svname'],function(error) {
+					updateServer(server['# pxname'],server['svname'],function(error) {
 							if (error) {
 								throw error;
 							}
-							client.destroy();
 							loop.next();
 						});
-
-						client.on('error', function (error) {
-							winston.error(error);
-						});
-					});
 				}else {
 					loop.next();
 				}
@@ -203,7 +203,6 @@ router.post('/', function(req, res) {
 		catch(err) {
 			// when an error occured, destory connection and show error message
 			winston.error(err.toString());
-			client.destroy();
 		}
 	}else {
 		winston.warn('No valid HAProxy status');
