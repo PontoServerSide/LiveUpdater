@@ -8,6 +8,7 @@ var express = require('express'),
     cronJob = require('cron').CronJob,
     csv = require('csv'),
     winston = global.winston = require('winston'),
+    exec = require('child_process').exec,
     bodyParser = require('body-parser'),
     routes = require('./routes/index'),
     users = require('./routes/user');
@@ -35,9 +36,11 @@ app.use(function(req, res, next) {
 });
 
 // read haproxy config file
-var haproxyCfgPath = '/etc/haproxy/haproxy.cfg',
+var haproxyCfgDir = '/etc/haproxy/',
+    haproxyCfgPath = haproxyCfgDir+'haproxy.cfg',
     socketPath = global.socketPath = '/tmp/haproxy',
     pidPath = global.pidPath = '/var/run/haproxy.pid',
+    readCfgData = null,
     servers = global.servers = [],
     haproxyStat = global.haproxyStat = [];
 
@@ -51,6 +54,8 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
     var index = 0;
     var server = null;
 
+    readCfgData = data;
+
     var lines = data.split('\n');
     for(var i=0; i<lines.length; i++) {
         var line = lines[i];
@@ -62,7 +67,7 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
         }
         // pidfile directory
         else if(res=line.match(/pidfile \s*([^\s]*)/)) {
-            pidPath = res[0];
+            pidPath = res[1];
             // console.log('pidfile dir: '+res[0]);
         }
         // global
@@ -84,12 +89,12 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
         }
         // server
         else if(res=line.match(/server *([^\s]*) *([\w\.]*):(\d+)/)) {
-            var data = {
+            var serverData = {
                 name: res[1],
                 ip: res[2],
                 port: res[3]
             };
-            server.frontend.push(data);
+            server.frontend.push(serverData);
             // console.log('frontend: '+res[1]);
         }
     }
@@ -173,17 +178,61 @@ var job = new cronJob({
             });
         });
     },
-    start: false
+    start: true
 });
 
 // Send HAProxy status
-monitorServer = createConnection(5000, localhost);
+monitorServer = net.createConnection(5000, 'localhost');
 
 monitorServer.on('connect', function (socket) {
     job.start();
 });
 
 monitorServer.on('data', function (data) {
+
+    var recvData = JSON.parse(data.toString());
+
+    if (recvData.signal === 'Attach') {
+        if (readCfgData !== null) {
+            var newCfgData = readCfgData+'\tserver temp_app '+recvData.ip+' check';
+
+            var tmpHaproxyCfgPath = haproxyCfgDir+'haproxy.tmp.cfg';
+
+            fs.writeFile(tmpHaproxyCfgPath, newCfgData, function (error) {
+                if (error) {
+                    throw error;
+                }
+            
+                // After write success
+                winston.info('haproxy -f '+tmpHaproxyCfgPath+' -p '+pidPath+' -sf $(cat '+pidPath+')');
+
+                exec('sudo haproxy -f '+tmpHaproxyCfgPath+' -p '+pidPath+' -sf $(cat '+pidPath+')', function (error, stdout, stderr) {
+                    winston.info(stdout);
+                    winston.error(stderr);
+                });
+
+            });
+        }
+    }else if (recvData.signal === 'Detach') {
+        if (readCfgData !== null) {
+            var tmpHaproxyCfgPath = haproxyCfgDir+'haproxy.tmp.cfg';
+
+            fs.writeFile(tmpHaproxyCfgPath, readCfgData, function (error) {
+                if (error) {
+                    throw error;
+                }
+            
+                // After write success
+                winston.info('haproxy -f '+tmpHaproxyCfgPath+' -p '+pidPath+' -sf $(cat '+pidPath+')');
+
+                exec('sudo haproxy -f '+tmpHaproxyCfgPath+' -p '+pidPath+' -sf $(cat '+pidPath+')', function (error, stdout, stderr) {
+                    winston.info(stdout);
+                    winston.error(stderr);
+                });
+
+            });
+        }
+    }
 
 });
 
