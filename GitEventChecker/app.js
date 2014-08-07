@@ -97,6 +97,7 @@ fs.readFile(haproxyCfgPath, 'utf8', function (err, data) {
     if (server != null) {
         servers.push(server);
     }
+
 });
 
 var monitorServer = null;
@@ -117,40 +118,62 @@ var job = new cronJob({
                         console.log(err);
                     }else {
                         if (monitorServer !== null) {
-                            var sendData = [];
+                            var sendData = {};
                             for(var i=0; i<servers.length; i++) {
 
-                                var sendServerData = {
+                                var sendData = {
                                     HAProxy_IP: servers[i].backend.ip+':'+servers[i].backend.port,
                                     Cluster_Count: servers[i].frontend.length,
+									Available_Memory: 0,
+									Traffic_Total: 0,
+									Traffic_Sent: 0,
+									Traffic_Received: 0,
                                     Cluster: []
                                 };
 
                                 var realIndex = 1;
+								var trafficIn = 0;
+								var trafficOut = 0;
 
                                 for(var j=0; j<parsedData.length; j++) {
                                     if (parsedData[j]['# pxname'] === servers[i].backend.name &&
                                         parsedData[j]['svname'] !== 'FRONTEND' &&
                                         parsedData[j]['svname'] !== 'BACKEND') {
-                                        sendServerData.Cluster.push({
+										
+										var status = parsedData[j]['status'];
+										if (status === 'UP') {
+											status = 'Working';
+										}else if (status === 'MAINT') {
+											status = 'Updating';
+										}else {
+											status = 'Disabled';
+										}
+
+                                        sendData.Cluster.push({
                                             Cluster_Index: realIndex,
-                                            Cluster_Name: parsedData[j]['svname'],
+                                            CPU_Usage: 0,
+											Available_Memory: 0,
                                             Traffic_Total: parsedData[j]['bin']*1+parsedData[j]['bout']*1,
                                             Traffic_Sent: parsedData[j]['bin'],
                                             Traffic_Received: parsedData[j]['bout'],
-                                            Current_Session: parsedData[j]['scur'],
-                                            Cluster_Status: parsedData[j]['status']
+                                            Cluster_Status: status
                                         });
+										
+										trafficIn += parsedData[j]['bin']*1;
+										trafficOut += parsedData[j]['bout']*1;
+						
                                         realIndex++;
                                     }
                                 }
 
-                                sendData.push(sendServerData);
+								sendData.Traffic_Sent = trafficOut;
+								sendData.Traffic_Received = trafficIn;
+								sendData.Traffic_Total = trafficIn + trafficOut;
                             }
 
-                            winston.info(sendData);
+                            //winston.info(sendData);
 
-                            //server.write(sendData, 'utf8');
+                            monitorServer.write(JSON.stringify(sendData), 'utf8');
                         }
 
                         parsedData.sort(compare);
@@ -177,7 +200,8 @@ var job = new cronJob({
 });
 
 // Send HAProxy status
-monitorServer = createConnection(5000, localhost);
+
+monitorServer = net.createConnection(5000, '192.168.0.6');
 
 monitorServer.on('connect', function (socket) {
     job.start();
