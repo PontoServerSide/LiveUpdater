@@ -129,6 +129,7 @@ var job = new cronJob({
                                 var sendData = {
                                     HAProxy_IP: servers[i].backend.ip+':'+servers[i].backend.port,
                                     Cluster_Count: servers[i].frontend.length,
+									CPU_Usage: 0,
 									Available_Memory: 0,
 									Traffic_Total: 0,
 									Traffic_Sent: 0,
@@ -156,8 +157,8 @@ var job = new cronJob({
 
                                         sendData.Cluster.push({
                                             Cluster_Index: realIndex,
-                                            CPU_Usage: 0,
-											Available_Memory: 0,
+                                            CPU_Usage: parsedData[j]['qcur'],
+											Available_Memory: parsedData[j]['scur'],
                                             Traffic_Total: parsedData[j]['bin']*1+parsedData[j]['bout']*1,
                                             Traffic_Sent: parsedData[j]['bin'],
                                             Traffic_Received: parsedData[j]['bout'],
@@ -168,7 +169,10 @@ var job = new cronJob({
 										trafficOut += parsedData[j]['bout']*1;
 						
                                         realIndex++;
-                                    }
+                                    }else if (parsedData[j]['svname'] === 'BACKEND') {
+										sendData.CPU_Usage = parsedData[j]['qcur'];
+										sendData.Available_Memory = parsedData[j]['scur'];
+									}
                                 }
 
 								sendData.Traffic_Sent = trafficOut;
@@ -176,9 +180,9 @@ var job = new cronJob({
 								sendData.Traffic_Total = trafficIn + trafficOut;
                             }
 
-                            winston.info(sendData);
+                            //winston.info(sendData);
 
-                            //monitorServer.write(JSON.stringify(sendData), 'utf8');
+                            monitorServer.write(JSON.stringify(sendData), 'utf8');
                         }
 
                         parsedData.sort(compare);
@@ -201,12 +205,12 @@ var job = new cronJob({
             });
         });
     },
-    start: true
+    start: false
 });
 
 // Send HAProxy status
-/*
-monitorServer = net.createConnection(5000, '192.168.0.6');
+
+monitorServer = net.createConnection(5000, '192.168.0.16');
 
 monitorServer.on('connect', function (socket) {
     job.start();
@@ -259,7 +263,7 @@ monitorServer.on('data', function (data) {
     }
 
 });
-*/
+
 function compare(a, b) {
     if (a.scur < b.scrur)
         return -1;
