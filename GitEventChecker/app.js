@@ -218,6 +218,7 @@ monitorServer.on('connect', function (socket) {
 
 monitorServer.on('data', function (data) {
 
+	try {
     var recvData = JSON.parse(data.toString());
 
     if (recvData.signal === 'Attach') {
@@ -261,7 +262,8 @@ monitorServer.on('data', function (data) {
             });
         }
     }
-
+	} catch (e) {
+	}
 });
 
 function compare(a, b) {

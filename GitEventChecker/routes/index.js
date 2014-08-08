@@ -104,7 +104,7 @@ return cb(new Error('No matched server'));
 			});
 
 			client.on('data', function (data) {
-				winston.info(data);
+				winston.info(data.toString());
 				if (data.toString() === 'success') {
 					client.destroy();
 					return cb(null);
