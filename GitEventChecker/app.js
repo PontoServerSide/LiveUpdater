@@ -176,9 +176,9 @@ var job = new cronJob({
 								sendData.Traffic_Total = trafficIn + trafficOut;
                             }
 
-                            //winston.info(sendData);
+                            winston.info(sendData);
 
-                            monitorServer.write(JSON.stringify(sendData), 'utf8');
+                            //monitorServer.write(JSON.stringify(sendData), 'utf8');
                         }
 
                         parsedData.sort(compare);
@@ -205,6 +205,7 @@ var job = new cronJob({
 });
 
 // Send HAProxy status
+/*
 monitorServer = net.createConnection(5000, '192.168.0.6');
 
 monitorServer.on('connect', function (socket) {
@@ -258,7 +259,7 @@ monitorServer.on('data', function (data) {
     }
 
 });
-
+*/
 function compare(a, b) {
     if (a.scur < b.scrur)
         return -1;

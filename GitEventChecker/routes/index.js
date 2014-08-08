@@ -53,7 +53,7 @@ var updateServer = function (backend, frontend, callback) {
 			// when the response arrived
 			sock.on('data', function (data) {
 				var strData = data.toString();
-				sock.end();
+				// sock.end();
 
 				if (strData.match(/\n/)) {
 					var now = new Date();
@@ -70,7 +70,8 @@ var updateServer = function (backend, frontend, callback) {
 			});
 
 			sock.on('end', function () {
-				winston.info('socket end');
+				winston.info('command socket end');
+				return cb(null);
 			});
 		},
 		findServerInfo = function (cb) {
@@ -91,13 +92,43 @@ var updateServer = function (backend, frontend, callback) {
 				}
 			}
 
-			return cb(new Error('No matched server'));
+			winston.info('no matched server');
+return cb(new Error('No matched server'));
 		},
 		waitResponse = function (host, cb) {
+			var client = new net.Socket();
+
+			client.connect(1818, host, function () {
+				winston.info('connected with server %s',host);
+				client.write('update');
+			});
+
+			client.on('data', function (data) {
+				winston.info(data);
+				if (data.toString() === 'success') {
+					client.destroy();
+					return cb(null);
+				}else if (data.toString() === 'fail') {
+					client.destroy();
+					return cb(new Error(host+':1818 update failed'));
+				}
+			});
+
+			client.on('close', function () {
+				winston.info('connection closed');	
+			});
+
+			/*
 			var server = net.createServer(function (connection) {
-				connection.write('update');
+				if(!connection.write('update')) {
+					return cb(new Error('can not send command to %s', host));
+				}else {
+					winston.info('send update command to %s',host);
+				}
 
 				connection.on('data', function (data) {
+					winston.debug(data);
+
 					if (data.toString() === 'success') {
 						server.close();
 						return cb(null);
@@ -117,6 +148,8 @@ var updateServer = function (backend, frontend, callback) {
 					return cb(error);
 				});
 			});
+
+			*/
 		},
 		restartServer = function (cb) {
 			var sock = net.createConnection(socketPath);
@@ -146,7 +179,8 @@ var updateServer = function (backend, frontend, callback) {
 			});
 
 			sock.on('end', function () {
-				winston.info('socket end');
+				winston.info('enable command socket end');
+				return cb(null);
 			});
 		};
 
@@ -179,10 +213,13 @@ router.post('/', function(req, res) {
 
 	if (global.haproxyStat.length !== 0) {
 		// start stopping servers
+		winston.info(global.haproxyStat.length);
 		try{
 			asyncLoop(global.haproxyStat.length, function(loop) {
 				var idx = loop.iteration();
 				var server = global.haproxyStat[idx];
+
+				winston.info('check is ok to stop %s',server);
 
 				// check the server status
 				if(isFineToStop(server)) {
